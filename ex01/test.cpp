@@ -108,9 +108,11 @@ int main(void)
 
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
+
 		glRotatef((float)glfwGetTime() * 50.f * direction, 0.f, 0.f, 1.f);
 
 		glBegin(GL_POLYGON);
+		/*
 		glColor3f(1.f, 0.f, 0.f);
 		glVertex3f(-1.0f, 1.0f, 0.f);
 
@@ -123,7 +125,19 @@ int main(void)
 		glColor3f(0.f, 0.f, 1.f);
 		glVertex3f(-1.0f, -1.0f, 0.f);
 
+		glEnd();
+		*/
 
+		// flag
+		glBegin(GL_POLYGON);
+		glColor3f(0.f, 0.f, 1.f);
+		glVertex3f(-1.0f, 1.0f, 0.f);
+
+		glColor3f(0.f, 0.f, 1.f);
+		glVertex3f(0.0f, 0.0f, 0.f);
+
+		glColor3f(0.0f, 0.0f, 1.f);
+		glVertex3f(-1.0f, -1.0f, 0.f);
 		glEnd();
 
 
@@ -138,5 +152,5 @@ int main(void)
 
 
 
-// programovateln8 pipeline obsahuje shadery, ktere budeme programovat
+// programovatelna pipeline obsahuje shadery, ktere budeme programovat
 // fixni pipeline, chova se jako stavovy automat
