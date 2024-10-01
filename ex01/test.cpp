@@ -1,4 +1,7 @@
-﻿//Include GLFW  
+﻿//Include GLEW
+// important
+#include <GL/glew.h>
+//Include GLFW
 #include <GLFW/glfw3.h>  
 
 //Include GLM  
@@ -11,6 +14,26 @@
 //Include the standard C++ headers  
 #include <stdlib.h>
 #include <stdio.h>
+
+
+// TASKS
+// glew dll zkopirovat do adresare kde je vysledna aplikace.exe tam nahrat knihofnu glwe32.dll
+// upravit zdrojovz kod, vyhazet fixni pipline a nahradit programovatelna pipeline
+// c > general > Additional Include Directories > ..\..\Libraries\glew-2.1.0\include
+// pridat
+// - Linker > input > glew32.lib
+// - Linker > General > ..\..\Libraries\glew-2.1.0\lib\Release\Win32
+// - v > general > ..\..\Libraries\glew - 2.1.0\include
+// a v nazevprojektu\Debug nebo release zalezi co pouzivam tady nakopirovat glew32.dll z ..\..\Libraries\glew-2.1.0\lib\Release\Win32
+
+
+
+
+// projekt
+// shader program, abstract shader ze ktereho dedi vertex a fragment shader, shader manager, kreslitelnyObjekt nebo Model
+// id shader programu bude private, zadny get/set, presuneme do tridy vse co potrebuje pracovat s danou private promennou,
+// uvnitr tridy bude metoda, ktera s ni pracuje
+
 
 
 
@@ -59,37 +82,46 @@ glm::mat4 View = glm::lookAt(
 glm::mat4 Model = glm::mat4(1.0f);
 
 
+
 int main(void)
 {
 	GLFWwindow* window;
 	glfwSetErrorCallback(error_callback);
-
-	if (!glfwInit())
+	if (!glfwInit()) {
+		fprintf(stderr, "ERROR: could not start GLFW3\n");
 		exit(EXIT_FAILURE);
-	window = glfwCreateWindow(640, 480, "ZPG", NULL, NULL);
-	if (!window)
-	{
+	}
+
+	/* //inicializace konkretni verze
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE,
+	GLFW_OPENGL_CORE_PROFILE);  //*/
+
+	window = glfwCreateWindow(800, 600, "ZPG", NULL, NULL);
+	if (!window) {
 		glfwTerminate();
 		exit(EXIT_FAILURE);
 	}
+
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(1);
 
-	// Sets the key callback
-	glfwSetKeyCallback(window, key_callback);
+	// start GLEW extension handler
+	glewExperimental = GL_TRUE;
+	glewInit();
 
-	glfwSetCursorPosCallback(window, cursor_callback);
 
-	//glfwSetMouseButtonCallback(window, button_callback);
-
-	glfwSetWindowFocusCallback(window, window_focus_callback);
-
-	glfwSetWindowIconifyCallback(window, window_iconify_callback);
-
-	glfwSetWindowSizeCallback(window, window_size_callback);
-
-	glfwSetMouseButtonCallback(window, change_rotation_direction);
-
+	// get version info
+	printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
+	printf("Using GLEW %s\n", glewGetString(GLEW_VERSION));
+	printf("Vendor %s\n", glGetString(GL_VENDOR));
+	printf("Renderer %s\n", glGetString(GL_RENDERER));
+	printf("GLSL %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+	int major, minor, revision;
+	glfwGetVersion(&major, &minor, &revision);
+	printf("Using GLFW %i.%i.%i\n", major, minor, revision);
 
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
@@ -97,55 +129,95 @@ int main(void)
 	glViewport(0, 0, width, height);
 
 
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(-ratio, ratio, -1.f, 1.f, 1.f, -1.f);
+	
+	float points[] = {
+		 0.5f,  0.5f, 0.0f,
+		 -0.5f, -0.5f, 0.0f,
+		 0.5f, -0.5f, 0.0f, 
+		
+		// additional vertices for square out of 2 triangles
+		 0.5f,  0.5f, 0.0f,
+		 -0.5f, -0.5f, 0.0f,
+		 -0.5f, 0.5f, 0.0f,
+	};
+
+	const char* vertex_shader =
+		"#version 330\n"
+		"layout(location=0) in vec3 vp;"
+		"void main () {"
+		"     gl_Position = vec4 (vp, 1.0);"
+		"}";
 
 
-	while (!glfwWindowShouldClose(window))
+
+	const char* fragment_shader =
+		"#version 330\n"
+		"out vec4 frag_colour;"
+		"void main () {"
+		"     frag_colour = vec4 (0.5, 0.5, 0.5, 1.0);"
+		"}";
+
+
+	//vertex buffer object (VBO)
+	GLuint VBO = 0;
+	glGenBuffers(1, &VBO); // generate the VBO
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+
+	//Vertex Array Object (VAO)
+	GLuint VAO = 0;
+	glGenVertexArrays(1, &VAO); //generate the VAO
+	glBindVertexArray(VAO); //bind the VAO
+	glEnableVertexAttribArray(0); //enable vertex attributes
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+
+	//create and compile shaders
+	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertexShader, 1, &vertex_shader, NULL);
+	glCompileShader(vertexShader);
+	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentShader, 1, &fragment_shader, NULL);
+	glCompileShader(fragmentShader);
+	GLuint shaderProgram = glCreateProgram();
+	glAttachShader(shaderProgram, fragmentShader);
+	glAttachShader(shaderProgram, vertexShader);
+	glLinkProgram(shaderProgram);
+
+
+
+	GLint status;
+	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &status);
+	if (status == GL_FALSE)
 	{
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-
-		glRotatef((float)glfwGetTime() * 50.f * direction, 0.f, 0.f, 1.f);
-
-		glBegin(GL_POLYGON);
-		/*
-		glColor3f(1.f, 0.f, 0.f);
-		glVertex3f(-1.0f, 1.0f, 0.f);
-
-		glColor3f(0.f, 1.f, 0.f);
-		glVertex3f(1.0f, 1.0f, 0.f);
-
-		glColor3f(1.0f, 1.0f, 0.f);
-		glVertex3f(1.0f, -1.0f, 0.f);
-
-		glColor3f(0.f, 0.f, 1.f);
-		glVertex3f(-1.0f, -1.0f, 0.f);
-
-		glEnd();
-		*/
-
-		// flag
-		glBegin(GL_POLYGON);
-		glColor3f(0.f, 0.f, 1.f);
-		glVertex3f(-1.0f, 1.0f, 0.f);
-
-		glColor3f(0.f, 0.f, 1.f);
-		glVertex3f(0.0f, 0.0f, 0.f);
-
-		glColor3f(0.0f, 0.0f, 1.f);
-		glVertex3f(-1.0f, -1.0f, 0.f);
-		glEnd();
-
-
-		glfwSwapBuffers(window);
-
-		glfwPollEvents();
+		GLint infoLogLength;
+		glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &infoLogLength);
+		GLchar* strInfoLog = new GLchar[infoLogLength + 1];
+		glGetProgramInfoLog(shaderProgram, infoLogLength, NULL, strInfoLog);
+		fprintf(stderr, "Linker failure: %s\n", strInfoLog);
+		delete[] strInfoLog;
 	}
+
+
+	while (!glfwWindowShouldClose(window)) {
+		// clear color and depth buffer
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// glUseProgram(0) // tedy nenastavi se zadny shader na vykresleni
+		glUseProgram(shaderProgram);
+		glBindVertexArray(VAO);
+		// draw triangles
+		// pro ctverec
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		//glDrawArrays(GL_TRIANGLES, 0, 3); //mode,first,count
+		// update other events like input handling
+		glfwPollEvents();
+		// put the stuff we’ve been drawing onto the display
+		glfwSwapBuffers(window);
+	}
+
 	glfwDestroyWindow(window);
+
 	glfwTerminate();
 	exit(EXIT_SUCCESS);
 }
