@@ -1,0 +1,60 @@
+Přepínání scén za běhu (Ano) (kde a jak)
+- V konstruktoru Application je zaregistrovaný key_callback() pomocí glfwSetKeyCallback()
+  V metodě key_callback() volám metodu cycleScenes(), která mění index právě zobrazené scény v poli scén.
+
+a) Základní scéna (Ano)
+
+b) Scéna s lesem (Ano)
+
+c) Scéna se čtyřmi kuličkami (Ano)
+
+d) Scéna pro demonstraci použití všech shaderů (Konstantní, Lambert, Phong a Blinn) (Ano)
+
+Světlo (Ano) (kde a jak máte naimplementováno, jak se updatuje změna světla)
+- Světlo je ve třídě PointLight má properties pozice a barva.
+- V konstruktoru Application je zaregistrovaný key_callback() pomocí glfwSetKeyCallback()
+  V metodě key_callback() volám metodu aktuálně zobrazené scény cycleLightShaders(). Uvnitř je switch statement,
+  který mění právě zobrazený osvětlovací model a vymění jej pro každý ShaderProgram.
+  Uvolní se zdroje pro starý program a pomocí ShaderLoader se načte nový fragment shader s jiným osvětlovacím
+  modelem.
+
+Základní třídy (ShaderProgram, DrowableObject, Camera, Controller) (Ano)
+(kdo zodpovídá za vykreslování, kde jsou uloženy modely, shadery atd.)
+- za vykreslování zodpovídá DrawableObject, má hlavní metodu draw, kde nastavuje právě používaný program,
+modelovou matici a volá metodu Model.draw(), stará se o transformace tělesa
+
+- modely jsou uloženy v kontejneru Model, který obsahuje buffer dat VBO a VAO, které říká openGL jak má ty
+vrcholy chápat (jako trojici float čísel pro pozici a trojici float čísel pro normálu)
+
+- shadery jsou uloženy v souborech, načítány pomocí ShaderLoader, stará se o ně ShaderProgram nastavuje jejich
+proměnné
+
+Transformace (Composite pattern) (Ano) (Máte pro transformace základní třídy? Co a jak jste použili?)
+- Ano mám zvlášť třídy Translation, Rotation, Scale. Dále ComposedTransfrom, která implementuje návrhový vzor
+  Composite a AbstractTransform, z něhož ty třídy dědí, zaručuje stejné rozhraní, všichni mají metodu 
+  getTransformMatrix(), kterou každý potomek implementuje jinak. 
+
+Základy OOP
+
+a) Encapsulation (zapouzdření) (Ano) (Kde a jak?)
+- ShaderProgram nedovoluje přímý přístup zvenčí k proměnné programID
+- Model nedovoluje přímý přístup zvenčí k proměnným vao, vbo
+- VertexArrayObject a VertexBufferObject nedovolují přímý přístup zvenčí k proměnné id
+
+b) Inheritance (dědičnost) (Ano) (Kde a jak?)
+- ShaderProgram dědí ze třídy Observer
+- Translation, Rotation, Scale, ComposedTransform dědí ze třídy AbstractTransform
+
+c) Polymorphism (mnohotvárnost) (Ano) (Kde a jak?)
+- AbstractTransform zaručuje stejné rozhraní, všichni mají společnou metodu getTransformMatrix(), kterou
+  každý potomek (Translation, Rotation, Scale, ComposedTransform) implementuje jinak.
+
+Vertex a fragment shadery prosím uložte do textových souboru a použijte přiložený ShaderLoader pro jejich načítání (Ano) (Kde a jak jste použili?)
+vertex_shader.glsl
+constant_fragment_shader.glsl
+lambert_fragment_shader.glsl
+phong_fragment_shader.glsl
+blinn_fragment_shader.glsl
+
+- pro použití ShaderLoader jsem zvolil kompozici na místo dědičnosti. V konstruktoru ShaderProgram a metodě 
+  setType() volám metodu ShaderLoader.loadShader() v destruktoru volám metodu ShaderLoader.deleteShader()
